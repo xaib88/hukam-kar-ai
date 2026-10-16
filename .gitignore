@@ -1,0 +1,10 @@
+node_modules/
+uploads/
+.env
+.DS_Store
+Thumbs.db
+*.exe
+*.zip
+interviews.json
+.env.*
+!.env.example

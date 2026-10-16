@@ -1,0 +1,50 @@
+/* Clean Light/White Theme Custom Styles for Hukam Kar - Powered by Momin Tahir */
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(0.98); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+/* Light Theme Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Print styling for candidate dossier */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  header, footer, #btnOpenSettings, #presetJdSelect, #dropZoneRank, #dropZoneTrans, #btnRankAnalyze, #btnStartTranslation {
+    display: none !important;
+  }
+  #candidateDetailModal {
+    position: static !important;
+    background: transparent !important;
+    display: block !important;
+    max-height: none !important;
+  }
+  #candidateDetailModal > div {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

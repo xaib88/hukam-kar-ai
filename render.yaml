@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: hukam-kar-ai
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: GROQ_API_KEY
+        sync: false

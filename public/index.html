@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hukam Kar | Multilingual Resume Studio &amp; ATS Ranker - Powered by Momin Tahir</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- html2pdf.js for 1-Click Client-Side PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen antialiased flex flex-col">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-600 flex items-center justify-center shadow-md shadow-emerald-500/20 text-white font-extrabold text-lg">
+          <i class="fa-solid fa-crown"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+              <span>Hukam</span> <span class="text-emerald-600 font-black">Kar</span>
+            </h1>
+            <span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-gradient-to-r from-emerald-50 to-indigo-50 text-emerald-800 border border-emerald-300 shadow-xs">
+              Powered by Momin Tahir
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 leading-none pt-0.5 font-medium">
+            AI Multilingual Resume Studio &amp; ATS Semantic Screener
+          </p>
+        </div>
+      </div>
+
+      <!-- Engine Selector & AI Credentials -->
+      <div class="flex items-center gap-2">
+        
+        <!-- Engine Switcher (Standard Neural vs Cloud AI) -->
+        <div class="flex items-center bg-slate-100 border border-slate-200 rounded-xl p-1 text-xs font-semibold">
+          <button id="engineBtnLocal" class="px-3 py-1.5 rounded-lg transition-all bg-emerald-600 text-white shadow-sm flex items-center gap-1.5" title="Free Standard Neural Engine">
+            <i class="fa-solid fa-bolt text-yellow-300"></i>
+            <span>Standard Neural</span>
+          </button>
+          <button id="engineBtnGroq" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition-all flex items-center gap-1.5" title="Ultra-Fast Cloud AI Engine">
+            <i class="fa-solid fa-microchip text-indigo-600"></i>
+            <span>Cloud AI (120B)</span>
+          </button>
+        </div>
+
+        <!-- AI Credentials Settings Button -->
+        <button id="btnOpenSettings" title="View &amp; Configure AI Credentials" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-indigo-600 flex items-center justify-center transition-all shadow-sm group">
+          <i class="fa-solid fa-key text-xs group-hover:scale-110 transition-transform"></i>
+        </button>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- PRIMARY NAVIGATION TABS (TRANSLATION VS RANKER) -->
+  <div class="bg-white border-b border-slate-200 sticky top-16 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+      <div class="flex items-center gap-8 text-sm font-bold">
+        
+        <!-- Tab 1: Translation Studio -->
+        <button id="mainTabTranslate" class="py-4 border-b-2 border-emerald-600 text-emerald-600 flex items-center gap-2.5 transition-all">
+          <i class="fa-solid fa-language text-base"></i>
+          <span>1. Resume Translation Studio</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">No JD Needed</span>
+        </button>
+
+        <!-- Tab 2: CV Ranker -->
+        <button id="mainTabRanker" class="py-4 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2.5 transition-all">
+          <i class="fa-solid fa-ranking-star text-base"></i>
+          <span>2. Smart CV Ranker &amp; ATS Screener</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold">With JD Matching</span>
+        </button>
+
+      </div>
+
+      <!-- Engine Status Badge -->
+      <div id="activeEngineBadge" class="hidden sm:flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span id="activeEngineText">Active Engine: Standard Neural (Local / Free)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1 CONTENT: RESUME TRANSLATION STUDIO (NO JD NEEDED) -->
+    <!-- ========================================================================= -->
+    <div id="sectionTranslateStudio" class="space-y-8">
+      
+      <!-- Hero Banner for Translation -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-emerald-50/40 to-blue-50/40 border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="max-w-3xl space-y-2">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
+            <i class="fa-solid fa-globe"></i> 100+ International Languages Supported
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Multilingual Resume Translation Studio
+          </h2>
+          <p class="text-slate-600 text-sm leading-relaxed">
+            Upload candidate resumes in any language (Spanish, Arabic, French, German, Urdu, Chinese, Japanese, etc.). The system automatically preserves original layouts, employment dates, skills, and work history while converting everything into clear, professional English. No Job Description required.
+          </p>
+        </div>
+      </div>
+
+      <!-- Upload Zone for Translation -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-cloud-arrow-up text-emerald-600"></i>
+              <span>Upload Foreign Resumes for Instant English Translation</span>
+            </h3>
+            <p class="text-xs text-slate-500">Supports PDF, Word (.docx), Excel (.xlsx, .csv), and Text files</p>
+          </div>
+
+          <!-- Quick Samples Button -->
+          <button id="btnLoadTranslationSamples" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 transition-all flex items-center gap-2">
+            <i class="fa-solid fa-users text-emerald-600"></i>
+            <span>Load 6 International Samples</span>
+          </button>
+        </div>
+
+        <!-- Drag & Drop Zone -->
+        <div id="dropZoneTrans" class="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50/70 rounded-xl p-8 text-center cursor-pointer transition-all duration-200 group">
+          <input type="file" id="fileInputTrans" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt" class="hidden">
+          <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-language text-2xl"></i>
+          </div>
+          <p class="text-sm font-semibold text-slate-800 mb-1">
+            Drag & Drop Foreign Resumes Here, or <span class="text-emerald-600 underline">Browse Files</span>
+          </p>
+          <p class="text-xs text-slate-500">
+            Arabic 🇦🇪, Spanish 🇪🇸, German 🇩🇪, French 🇫🇷, Urdu 🇵🇰, Chinese 🇨🇳, Japanese 🇯🇵, etc.
+          </p>
+        </div>
+
+        <!-- Staged Files in Translation Tab -->
+        <div>
+          <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+            <span class="font-semibold text-slate-700">Staged for Translation (<span id="transQueueCount">0</span>)</span>
+            <button id="btnClearTransQueue" class="text-slate-500 hover:text-red-500 hidden">Clear All</button>
+          </div>
+          <div id="transQueueContainer" class="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+            <p id="transEmptyMsg" class="text-xs text-slate-400 text-center py-4 italic">No files staged yet.</p>
+          </div>
+        </div>
+
+        <!-- Start Translation Button -->
+        <button id="btnStartTranslation" disabled class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span id="transBtnText">Translate Resumes to Professional English</span>
+        </button>
+
+      </div>
+
+      <!-- Translation Progress Indicator -->
+      <div id="transProgressCard" class="hidden rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin"></div>
+            <span id="transProgressText" class="text-xs font-semibold text-slate-700">Translating resume content...</span>
+          </div>
+          <span id="transProgressPercent" class="text-xs font-bold text-emerald-600">0%</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2">
+          <div id="transProgressBar" class="bg-gradient-to-r from-emerald-500 to-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Translation Results Feed -->
+      <div id="transResultsSection" class="hidden space-y-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+            <span>Translated Resumes (<span id="transResultsCount">0</span>)</span>
+          </h3>
+          <span class="text-xs text-slate-500 font-medium">Original layout & structure preserved</span>
+        </div>
+
+        <div id="transCardsContainer" class="space-y-6">
+          <!-- Rendered translation cards -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2 CONTENT: SMART CV RANKER & ATS SCREENER (WITH JD) -->
+    <!-- ========================================================================= -->
+    <div id="sectionRankerStudio" class="hidden space-y-8">
+      
+      <!-- Hero Banner for Ranker -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-emerald-50/40 border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="max-w-3xl space-y-2">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold">
+            <i class="fa-solid fa-trophy"></i> Automated Candidate Ranking & Semantic Fit
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Smart CV Ranker & ATS Screener
+          </h2>
+          <p class="text-slate-600 text-sm leading-relaxed">
+            Paste your target Job Description and upload candidate resumes in any language. The system cross-lingually evaluates skills, experience, and educational background, ranking candidates from <strong>#1 Top Pick, #2, #3</strong> with complete ATS scorecards and instant Excel export.
+          </p>
+        </div>
+      </div>
+
+      <!-- Two-Column Workflow: Step 1 (JD) & Step 2 (Upload) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- STEP 1: JOB DESCRIPTION (5 COLS) -->
+        <section class="lg:col-span-5 flex flex-col space-y-4">
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex-1 flex flex-col">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">1</span>
+                <h3 class="text-base font-bold text-slate-900">Target Job Description (JD)</h3>
+              </div>
+              <span class="text-xs text-slate-400 font-medium">Requisition Details</span>
+            </div>
+
+
+            <!-- Custom JD Text Area -->
+            <div class="flex-1 flex flex-col">
+              <label for="jobDescription" class="block text-xs font-medium text-slate-600 mb-1">
+                Requirements, Mandatory Skills & Experience:
+              </label>
+              <textarea id="jobDescription" rows="12" class="w-full flex-1 bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-mono leading-relaxed resize-none" placeholder="Paste full Job Description here..."></textarea>
+            </div>
+
+            <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
+              <span id="jdWordCount">0 words</span>
+              <button id="btnClearJd" class="hover:text-red-500 transition-colors">
+                <i class="fa-solid fa-trash-can mr-1"></i> Clear JD
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- STEP 2: RESUMES INGESTION FOR RANKING (7 COLS) -->
+        <section class="lg:col-span-7 flex flex-col space-y-4">
+          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex-1 flex flex-col">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">2</span>
+                <h3 class="text-base font-bold text-slate-900">Upload Resumes for Ranking</h3>
+              </div>
+              <span class="text-xs text-slate-400 font-medium">Candidate Files</span>
+            </div>
+
+            <!-- Drag and Drop Zone -->
+            <div id="dropZoneRank" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50/70 rounded-xl p-6 text-center cursor-pointer transition-all duration-200 group">
+              <input type="file" id="fileInputRank" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt" class="hidden">
+              <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-folder-open text-xl"></i>
+              </div>
+              <p class="text-sm font-semibold text-slate-800 mb-1">
+                Drag & Drop Candidate Files Here, or <span class="text-blue-600 underline">Browse</span>
+              </p>
+              <p class="text-xs text-slate-500 mb-2">
+                Supports: PDF, Word, Excel, CSV, TXT (5 to 100+ Resumes)
+              </p>
+            </div>
+
+            <!-- Samples Loader Bar -->
+            <div class="mt-3 p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div class="text-xs text-slate-700">
+                <span class="font-bold text-blue-700">💡 Quick 1-Click Test:</span>
+                <p class="text-[11px] text-slate-500">Load 6 international sample resumes in Arabic, Spanish, German, French, Urdu, Chinese</p>
+              </div>
+              <button id="btnLoadRankerSamples" class="whitespace-nowrap px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 transition-all flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-users text-blue-600"></i>
+                <span>Load 6 Global Samples</span>
+              </button>
+            </div>
+
+            <!-- Staged Files List -->
+            <div class="mt-3 flex-1">
+              <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+                <span class="font-semibold text-slate-700">Staged Candidates (<span id="rankQueueCount">0</span>)</span>
+                <button id="btnClearRankQueue" class="text-slate-500 hover:text-red-500 hidden">Clear All</button>
+              </div>
+              <div id="rankQueueContainer" class="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                <p id="rankEmptyMsg" class="text-xs text-slate-400 text-center py-4 italic">No resumes uploaded yet.</p>
+              </div>
+            </div>
+
+            <!-- Analyze & Rank Button -->
+            <div class="pt-3 mt-auto">
+              <button id="btnRankAnalyze" disabled class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-trophy"></i>
+                <span id="rankBtnText">Evaluate & Rank Resumes (#1, #2, #3...)</span>
+              </button>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Ranker Progress Indicator -->
+      <div id="rankProgressCard" class="hidden rounded-2xl bg-white border border-slate-200 p-6 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"></div>
+            <span id="rankProgressText" class="text-xs font-semibold text-slate-700">Semantic evaluation against JD...</span>
+          </div>
+          <span id="rankProgressPercent" class="text-xs font-bold text-blue-600">0%</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2">
+          <div id="rankProgressBar" class="bg-gradient-to-r from-blue-500 to-emerald-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Ranker Results Dashboard -->
+      <div id="rankResultsSection" class="hidden space-y-6">
+        
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Total Evaluated</p>
+            <p id="statTotal" class="text-2xl font-black text-slate-900 mt-1">0</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Top Picks (90%+)</p>
+            <p id="statTopMatches" class="text-2xl font-black text-emerald-600 mt-1">0</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Average Fit</p>
+            <p id="statAvgScore" class="text-2xl font-black text-blue-600 mt-1">0%</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+            <p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Languages</p>
+            <p id="statLanguages" class="text-sm font-bold text-slate-800 mt-2 truncate">-</p>
+          </div>
+        </div>
+
+        <!-- SCHEDULED INTERVIEWS PIPELINE & CALENDAR BAR -->
+        <div id="interviewPipelineBar" class="bg-white border-2 border-indigo-200 rounded-2xl p-5 shadow-sm space-y-4 transition-all">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-indigo-700 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-indigo-500/20">
+                <i class="fa-solid fa-calendar-check"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-bold text-slate-900">Scheduled Interviews &amp; Calendar Alignment</h3>
+                  <span id="interviewPipelineCount" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    0 Scheduled
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500">
+                  Real-time synchronization with <strong class="text-slate-700">Microsoft Outlook (.ics)</strong> &amp; <strong class="text-slate-700">Zoom Meetings</strong>
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="btnOpenManualScheduler" class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-calendar-plus text-indigo-600"></i>
+                <span>Quick Schedule</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic List of Scheduled Interviews -->
+          <div id="scheduledInterviewsList" class="space-y-3">
+            <div id="emptyInterviewsNotice" class="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+              <i class="fa-solid fa-video text-slate-300 text-3xl mb-2"></i>
+              <p class="text-xs font-semibold text-slate-700">No candidate interviews scheduled yet.</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Select <span class="font-bold text-indigo-600">"📞 Interview Call"</span> on any candidate card below to automatically setup Zoom and Outlook calendar invites.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Action Toolbar -->
+        <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+          
+          <!-- Filters -->
+          <div class="flex flex-wrap items-center gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5 font-medium">Filter Tier:</label>
+              <select id="filterTier" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none">
+                <option value="ALL">All Tiers</option>
+                <option value="Top Match">🥇 Top Match (90-100%)</option>
+                <option value="Strong Match">🥈 Strong Match (75-89%)</option>
+                <option value="Moderate Match">🥉 Moderate Match (50-74%)</option>
+                <option value="Low Match">⚠️ Low Match (&lt;50%)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5 font-medium">Language:</label>
+              <select id="filterLanguage" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none">
+                <option value="ALL">All Languages</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5 font-medium">Sort Order:</label>
+              <select id="sortBy" class="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none">
+                <option value="score_desc">Highest Fit Score (#1 first)</option>
+                <option value="score_asc">Lowest Fit Score</option>
+                <option value="exp_desc">Most Experience</option>
+                <option value="name_asc">Candidate Name (A-Z)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-2">
+            <button id="btnCompareSelected" class="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-code-compare text-blue-600"></i>
+              <span>Compare Selected (<span id="compareSelectedCount">0</span>)</span>
+            </button>
+
+            <button id="btnExportExcel" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-2">
+              <i class="fa-solid fa-file-excel"></i>
+              <span>Export Excel (.xlsx)</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Leaderboard Cards List -->
+        <div id="candidatesGrid" class="space-y-4">
+          <!-- Rendered dynamically -->
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL: DUAL-PANE SIDE-BY-SIDE TRANSLATION & ATS REPORT -->
+  <div id="candidateDetailModal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-3">
+          <div id="modalRankBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+            🥇 #1 Top Match
+          </div>
+          <div>
+            <h3 id="modalCandidateName" class="text-lg font-bold text-slate-900 leading-tight">Candidate Name</h3>
+            <p id="modalSubInfo" class="text-xs text-slate-500">Original Language: Arabic | Location: Dubai, UAE</p>
+          </div>
+        </div>
+        <button id="btnCloseModal" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Tabs -->
+      <div class="px-6 border-b border-slate-200 bg-white flex items-center gap-6 text-xs font-semibold">
+        <button id="tabBtnDualPane" class="py-3 border-b-2 border-emerald-600 text-emerald-600 flex items-center gap-2">
+          <i class="fa-solid fa-columns"></i>
+          <span>Side-by-Side: Original vs English Translation</span>
+        </button>
+        <button id="tabBtnAtsReport" class="py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>ATS Fit Scorecard & Recruiter Questions</span>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        
+        <!-- VIEW 1: DUAL PANE -->
+        <div id="viewDualPane" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- LEFT PANE -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col">
+            <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
+              <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-file-lines text-blue-600"></i> Original Resume (<span id="modalOriginalLang">Original</span>)
+              </span>
+              <span class="text-[11px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono" id="modalFormatBadge">PDF</span>
+            </div>
+            <pre id="modalOriginalContent" class="text-xs text-slate-800 font-mono whitespace-pre-wrap leading-relaxed overflow-y-auto max-h-[500px] select-text">Original text...</pre>
+          </div>
+
+          <!-- RIGHT PANE -->
+          <div class="bg-white border border-emerald-200 rounded-xl p-4 flex flex-col shadow-sm">
+            <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+              <span class="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-language text-emerald-600"></i> Standardized English Translation
+              </span>
+              <button id="btnCopyEnglish" class="text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200">
+                <i class="fa-solid fa-copy mr-1"></i> Copy English
+              </button>
+            </div>
+            <div id="modalEnglishContent" class="text-xs text-slate-800 space-y-4 overflow-y-auto max-h-[500px] pr-2">
+              <!-- Rendered translation -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- VIEW 2: ATS SCORECARD -->
+        <div id="viewAtsReport" class="hidden space-y-6">
+          
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+              <p class="text-xs text-slate-500 font-medium">Skills Alignment</p>
+              <p id="modalSkillsScore" class="text-2xl font-bold text-emerald-600 mt-1">0%</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+              <p class="text-xs text-slate-500 font-medium">Experience Match</p>
+              <p id="modalExpScore" class="text-2xl font-bold text-blue-600 mt-1">0%</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+              <p class="text-xs text-slate-500 font-medium">Education & Degree</p>
+              <p id="modalEduScore" class="text-2xl font-bold text-purple-600 mt-1">0%</p>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+              <p class="text-xs text-slate-500 font-medium">Role Fit</p>
+              <p id="modalRoleScore" class="text-2xl font-bold text-amber-600 mt-1">0%</p>
+            </div>
+          </div>
+
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+            <h4 class="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <i class="fa-solid fa-stamp"></i> Executive HR Recommendation
+            </h4>
+            <p id="modalHrRecommendation" class="text-sm text-slate-800 leading-relaxed font-medium">...</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <h4 class="text-xs font-bold text-emerald-700 mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-circle-check"></i> Key Strengths & Assets
+              </h4>
+              <ul id="modalStrengthsList" class="space-y-2 text-xs text-slate-700"></ul>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <h4 class="text-xs font-bold text-amber-700 mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation"></i> Gaps & Points to Clarify
+              </h4>
+              <ul id="modalGapsList" class="space-y-2 text-xs text-slate-700"></ul>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <h4 class="text-xs font-bold text-blue-700 mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-comments"></i> Suggested Interview Questions for Recruiter
+            </h4>
+            <ul id="modalQuestionsList" class="space-y-2 text-xs text-slate-700"></ul>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+        <span class="text-xs text-slate-500">Candidate ID: <span id="modalCandidateId" class="font-mono text-slate-700">cand-1</span></span>
+        <div class="flex items-center gap-2">
+          <button id="modalBtnDownloadPdf" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-file-pdf"></i> Download Translated PDF
+          </button>
+          <button id="modalBtnPrint" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-xs font-medium text-slate-700 flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-print"></i> Print
+          </button>
+          <button id="modalBtnCloseBottom" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-xs font-semibold text-white">
+            Done
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: AI ENGINE CREDENTIALS & SETTINGS -->
+  <div id="settingsModal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm shadow-sm">
+            <i class="fa-solid fa-key"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">AI Engine Credentials</h3>
+            <p class="text-xs text-slate-500">Cloud Intelligence Configuration</p>
+          </div>
+        </div>
+        <button id="btnCloseSettings" class="text-slate-400 hover:text-slate-700">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3.5">
+        <div class="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200 text-xs text-indigo-900 leading-relaxed">
+          <strong>Credentials Security:</strong> Your API credentials are encrypted and stored locally in your browser. They empower 120B parameter neural semantic ranking and multilingual translation.
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            Active Cloud AI API Key (Credentials):
+          </label>
+          <div class="relative">
+            <input type="password" id="inputGroqApiKey" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxx" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-mono placeholder-slate-400 focus:outline-none focus:border-indigo-600 pr-10 shadow-sm">
+            <button type="button" id="toggleKeyVisibility" class="absolute right-2 top-2 text-slate-400 hover:text-slate-700 text-xs p-1" title="Show / Hide Credentials">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Active AI Model Tier:</label>
+          <select id="selectGroqModel" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-600 shadow-sm">
+            <option value="openai/gpt-oss-120b">GPT-OSS 120B (High Intelligence &amp; Accuracy)</option>
+            <option value="openai/gpt-oss-20b">GPT-OSS 20B (Ultra-Fast Batch Screener)</option>
+            <option value="qwen/qwen3.8-27b">Qwen 3.8 27B (Multilingual Specialist)</option>
+          </select>
+        </div>
+
+        <div id="testKeyFeedback" class="hidden p-3 rounded-lg text-xs"></div>
+      </div>
+
+      <div class="pt-2 flex items-center justify-between gap-3">
+        <button id="btnTestGroqKey" class="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5 transition-colors">
+          <i class="fa-solid fa-vial text-indigo-600"></i> Verify Credentials
+        </button>
+        <button id="btnSaveSettings" class="flex-1 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white transition-colors shadow-sm">
+          Save Credentials
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: COMPARE CANDIDATES -->
+  <div id="compareModal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col p-6 shadow-2xl overflow-hidden">
+      
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+            <i class="fa-solid fa-code-compare"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Side-by-Side Candidate Comparison</h3>
+            <p class="text-xs text-slate-500">Comparative Matrix for Selected Candidates</p>
+          </div>
+        </div>
+        <button id="btnCloseCompare" class="text-slate-400 hover:text-slate-700">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="compareGrid" class="flex-1 overflow-x-auto overflow-y-auto grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+        <!-- Injected via app.js -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: SCHEDULE INTERVIEW WITH ZOOM & OUTLOOK -->
+  <div id="interviewModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl max-h-[94vh] flex flex-col shadow-2xl overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-indigo-50 via-blue-50 to-white">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg font-bold shadow-md shadow-indigo-500/20">
+            <i class="fa-solid fa-video"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900">Schedule Candidate Interview</h3>
+              <span id="schCandidateBadge" class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">#1 Top Pick</span>
+            </div>
+            <p class="text-xs text-slate-500">
+              Automated <strong>Zoom Meeting Setup</strong> &bull; 1-Click <strong>Microsoft Outlook Calendar Sync</strong>
+            </p>
+          </div>
+        </div>
+        <button id="btnCloseInterviewModal" class="w-8 h-8 rounded-lg bg-white/80 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-sm transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body Form -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-5">
+        
+        <!-- Candidate Card Summary -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between gap-4">
+          <div>
+            <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Target Candidate</p>
+            <h4 id="schCandidateNameDisplay" class="text-sm font-bold text-slate-900 mt-0.5">Candidate Name</h4>
+            <p id="schCandidateSubDisplay" class="text-xs text-slate-500">Match Fit: 94% &bull; Arabic &bull; 6 Years Experience</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg">
+              <i class="fa-solid fa-phone mr-1"></i> Interview Call
+            </span>
+          </div>
+        </div>
+
+        <!-- Date & Time Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">
+              <i class="fa-regular fa-calendar text-indigo-600 mr-1"></i> Interview Date:
+            </label>
+            <input type="date" id="schInterviewDate" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 font-medium shadow-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">
+              <i class="fa-regular fa-clock text-indigo-600 mr-1"></i> Start Time:
+            </label>
+            <input type="time" id="schInterviewTime" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 font-medium shadow-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Duration:</label>
+            <select id="schDuration" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 font-medium shadow-sm">
+              <option value="30">30 Minutes (Screening)</option>
+              <option value="45" selected>45 Minutes (Standard)</option>
+              <option value="60">60 Minutes (Deep Dive)</option>
+              <option value="90">90 Minutes (Panel)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Timezone & Meeting Title Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Timezone:</label>
+            <select id="schTimezone" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 font-medium shadow-sm">
+              <option value="Asia/Karachi (PKT GMT+5)" selected>Pakistan Standard Time (PKT GMT+5)</option>
+              <option value="Asia/Dubai (GST GMT+4)">Gulf Standard Time (Dubai GMT+4)</option>
+              <option value="Europe/London (GMT/BST)">London / UK (GMT/BST)</option>
+              <option value="Europe/Berlin (CET GMT+1)">Central European Time (Berlin/Paris)</option>
+              <option value="America/New_York (EST GMT-5)">Eastern Time (New York EST)</option>
+              <option value="UTC">UTC (Universal Time)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Meeting Topic / Title:</label>
+            <input type="text" id="schMeetingTitle" value="Technical & Fit Interview" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 font-medium shadow-sm">
+          </div>
+        </div>
+
+        <!-- Hiring Manager & Candidate Contact Info -->
+        <div class="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 space-y-3">
+          <h5 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-users text-indigo-600"></i> Interview Attendees &amp; Calendar Recipients
+          </h5>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">Hiring Manager Name:</label>
+              <input type="text" id="schHiringManagerName" placeholder="e.g. Farhan Ahmed (VP Engineering)" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 shadow-sm">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">Hiring Manager Email:</label>
+              <input type="email" id="schHiringManagerEmail" placeholder="manager@company.com" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 shadow-sm">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">Candidate Name:</label>
+              <input type="text" id="schCandidateName" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 shadow-sm">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 mb-1">Candidate Email:</label>
+              <input type="email" id="schCandidateEmail" placeholder="candidate@email.com" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 shadow-sm">
+            </div>
+          </div>
+        </div>
+
+        <!-- Zoom Call Integration Details -->
+        <div class="bg-blue-50/60 border border-blue-200 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-blue-900 flex items-center gap-2">
+              <i class="fa-solid fa-video text-blue-600"></i> Automated Zoom Meeting Details
+            </span>
+            <button type="button" id="btnRegenerateZoom" class="text-[11px] font-semibold text-blue-700 hover:text-blue-900 flex items-center gap-1">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh Zoom Link
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div class="bg-white border border-blue-200 rounded-lg p-2.5">
+              <span class="text-[10px] text-slate-500 font-semibold uppercase">Meeting ID</span>
+              <p id="schZoomIdDisplay" class="font-mono font-bold text-blue-900 text-sm mt-0.5">849 2039 1192</p>
+            </div>
+            <div class="bg-white border border-blue-200 rounded-lg p-2.5">
+              <span class="text-[10px] text-slate-500 font-semibold uppercase">Passcode</span>
+              <p id="schZoomPassDisplay" class="font-mono font-bold text-blue-900 text-sm mt-0.5">742918</p>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-500 mb-1">Zoom Meeting Join URL (Auto-generated or Paste Custom Link):</label>
+            <input type="text" id="schZoomUrlInput" class="w-full bg-white border border-blue-300 rounded-lg px-3 py-1.5 text-xs text-blue-800 font-mono focus:outline-none focus:border-blue-600 shadow-sm">
+          </div>
+        </div>
+
+        <!-- Notes / Suggested Questions -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">
+            <i class="fa-solid fa-note-sticky text-amber-500 mr-1"></i> Recruiter Agenda &amp; Suggested Questions (Included in Outlook Invite):
+          </label>
+          <textarea id="schNotes" rows="2" class="w-full bg-white border border-slate-300 rounded-lg p-3 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 shadow-sm resize-none"></textarea>
+        </div>
+
+        <!-- Direct Laptop App Launch Actions -->
+        <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-3.5 space-y-2.5">
+          <h5 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-laptop text-indigo-600"></i> Direct Laptop App Launch (No file download needed)
+          </h5>
+          <div class="space-y-2 text-xs">
+            <label class="flex items-center gap-2.5 text-slate-800 font-semibold cursor-pointer">
+              <input type="checkbox" id="chkLaunchOutlook" checked class="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500">
+              <span>🚀 <strong>Directly launch Microsoft Outlook app</strong> on this laptop with appointment ready</span>
+            </label>
+            <label class="flex items-center gap-2.5 text-slate-800 font-semibold cursor-pointer">
+              <input type="checkbox" id="chkLaunchZoom" checked class="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500">
+              <span>🎥 <strong>Directly launch Zoom app</strong> on this laptop</span>
+            </label>
+            <label class="flex items-center gap-2.5 text-slate-500 font-normal cursor-pointer pt-1 border-t border-indigo-100">
+              <input type="checkbox" id="chkDownloadIcs" class="w-4 h-4 rounded text-slate-600 border-slate-300">
+              <span>📥 Also download a backup .ics file into Downloads folder (Optional)</span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+        <div class="text-xs text-slate-500 flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-check text-emerald-500"></i>
+          <span>Apps will launch directly on your laptop when you confirm.</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnCancelInterviewModal" class="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 transition-colors">
+            Cancel
+          </button>
+          <button type="button" id="btnConfirmScheduleInterview" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-xs font-bold text-white shadow-md shadow-indigo-600/20 transition-all flex items-center gap-2">
+            <i class="fa-solid fa-rocket"></i>
+            <span>Confirm &amp; Launch Apps on Laptop</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- FOOTER -->
+  <footer class="mt-auto border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
+    <p><strong>Hukam Kar</strong> &bull; Enterprise Multilingual Resume Studio &amp; ATS Screener &bull; <strong>Powered by Momin Tahir</strong></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
