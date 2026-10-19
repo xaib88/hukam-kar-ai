@@ -41,19 +41,9 @@ const dom = {
   // Navigation & Engine Switcher
   mainTabTranslate: document.getElementById('mainTabTranslate'),
   mainTabRanker: document.getElementById('mainTabRanker'),
-  mainTabChatbot: document.getElementById('mainTabChatbot'),
   sectionTranslateStudio: document.getElementById('sectionTranslateStudio'),
   sectionRankerStudio: document.getElementById('sectionRankerStudio'),
-  sectionChatbotStudio: document.getElementById('sectionChatbotStudio'),
-  chatMessagesArea: document.getElementById('chatMessagesArea'),
-  chatForm: document.getElementById('chatForm'),
-  chatInput: document.getElementById('chatInput'),
-  btnSendChat: document.getElementById('btnSendChat'),
-  btnClearChat: document.getElementById('btnClearChat'),
-  btnExportChat: document.getElementById('btnExportChat'),
-  chatActiveEngineBadge: document.getElementById('chatActiveEngineBadge'),
   engineBtnLocal: document.getElementById('engineBtnLocal'),
-  engineBtnOllama: document.getElementById('engineBtnOllama'),
   engineBtnGroq: document.getElementById('engineBtnGroq'),
   activeEngineText: document.getElementById('activeEngineText'),
   activeEngineBadge: document.getElementById('activeEngineBadge'),
@@ -191,7 +181,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSettings();
   initTabNavigation();
   initEventListeners();
-  initChatbotUI();
   await loadServerSamples();
   checkReadyStates();
   await initInterviews();
@@ -199,25 +188,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Setup Engine Selection (Local Free vs Groq)
 function initEngineUI() {
+  if (state.currentEngine === 'ollama') state.currentEngine = 'local';
   setEngine(state.currentEngine);
 }
 
 function setEngine(engine) {
-  state.currentEngine = engine;
-  localStorage.setItem('talentglobal_engine', engine);
+  state.currentEngine = engine === 'groq' ? 'groq' : 'local';
+  localStorage.setItem('talentglobal_engine', state.currentEngine);
 
   const activeCls = (color) => `px-3 py-1.5 rounded-lg font-semibold transition-all bg-${color}-600 text-white shadow-sm flex items-center gap-1.5`;
   const inactiveCls = 'px-3 py-1.5 rounded-lg font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center gap-1.5';
 
-  if (dom.engineBtnLocal) dom.engineBtnLocal.className = (engine === 'local') ? activeCls('emerald') : inactiveCls;
-  if (dom.engineBtnOllama) dom.engineBtnOllama.className = (engine === 'ollama') ? activeCls('blue') : inactiveCls;
-  if (dom.engineBtnGroq) dom.engineBtnGroq.className = (engine === 'groq') ? activeCls('indigo') : inactiveCls;
+  if (dom.engineBtnLocal) dom.engineBtnLocal.className = (state.currentEngine === 'local') ? activeCls('emerald') : inactiveCls;
+  if (dom.engineBtnGroq) dom.engineBtnGroq.className = (state.currentEngine === 'groq') ? activeCls('indigo') : inactiveCls;
 
   if (dom.activeEngineText && dom.activeEngineBadge) {
-    if (engine === 'ollama') {
-      dom.activeEngineText.textContent = 'Active Engine: Local Ollama AI (Unlimited / Zero Limits / Offline)';
-      dom.activeEngineBadge.className = 'hidden sm:flex items-center gap-2 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full';
-    } else if (engine === 'groq') {
+    if (state.currentEngine === 'groq') {
       dom.activeEngineText.textContent = 'Active Engine: Ultra-Fast Cloud AI (120B Model)';
       dom.activeEngineBadge.className = 'hidden sm:flex items-center gap-2 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full';
     } else {
@@ -231,7 +217,6 @@ function setEngine(engine) {
 function initTabNavigation() {
   if (dom.mainTabTranslate) dom.mainTabTranslate.addEventListener('click', () => switchTab('translate'));
   if (dom.mainTabRanker) dom.mainTabRanker.addEventListener('click', () => switchTab('ranker'));
-  if (dom.mainTabChatbot) dom.mainTabChatbot.addEventListener('click', () => switchTab('chatbot'));
 }
 
 function switchTab(tab) {
@@ -242,16 +227,9 @@ function switchTab(tab) {
   
   if (dom.mainTabTranslate) dom.mainTabTranslate.className = (tab === 'translate') ? 'py-4 border-b-2 border-emerald-600 text-emerald-600 flex items-center gap-2.5 transition-all' : inactiveTabCls;
   if (dom.mainTabRanker) dom.mainTabRanker.className = (tab === 'ranker') ? activeTabCls : inactiveTabCls;
-  if (dom.mainTabChatbot) dom.mainTabChatbot.className = (tab === 'chatbot') ? activeTabCls : inactiveTabCls;
 
   if (dom.sectionTranslateStudio) dom.sectionTranslateStudio.classList.toggle('hidden', tab !== 'translate');
   if (dom.sectionRankerStudio) dom.sectionRankerStudio.classList.toggle('hidden', tab !== 'ranker');
-  if (dom.sectionChatbotStudio) dom.sectionChatbotStudio.classList.toggle('hidden', tab !== 'chatbot');
-
-  if (tab === 'chatbot') {
-    renderChatMessages();
-    if (dom.chatInput) setTimeout(() => dom.chatInput.focus(), 100);
-  }
 }
 
 // Setup Groq API Settings UI
@@ -309,13 +287,6 @@ function initEventListeners() {
     setEngine('local');
     checkReadyStates();
   });
-
-  if (dom.engineBtnOllama) {
-    dom.engineBtnOllama.addEventListener('click', () => {
-      setEngine('ollama');
-      checkReadyStates();
-    });
-  }
 
   dom.engineBtnGroq.addEventListener('click', () => {
     setEngine('groq');
@@ -1873,165 +1844,5 @@ function showToast(message, type = 'success') {
 }
 window.showToast = showToast;
 
-// =========================================================================
-// TAB 3: RECRUITER AI CHATBOT CONTROLLER (LOCAL OLLAMA / CLOUD AI)
-// =========================================================================
-state.chatMessages = [
-  {
-    role: 'assistant',
-    content: 'Salam & Welcome to Hukam Kar AI Copilot! 👋\n\nI am powered by your **local llama3.2:3b LLM** running directly inside your laptop. You have **zero rate limits, zero quotas, and 100% offline privacy**.\n\nAsk me anything about recruitment, candidates, job descriptions, interview questions, or resume evaluations!'
-  }
-];
-
-function initChatbotUI() {
-  if (dom.chatForm) {
-    dom.chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      handleSendChatMessage();
-    });
-  }
-
-  if (dom.chatInput) {
-    dom.chatInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSendChatMessage();
-      }
-    });
-  }
-
-  if (dom.btnClearChat) {
-    dom.btnClearChat.addEventListener('click', () => {
-      state.chatMessages = [state.chatMessages[0]];
-      renderChatMessages();
-      showToast('Chat history cleared.', 'info');
-    });
-  }
-
-  if (dom.btnExportChat) {
-    dom.btnExportChat.addEventListener('click', exportChatTranscript);
-  }
-
-  // Quick Prompt Chips
-  document.querySelectorAll('.chat-prompt-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const prompt = chip.getAttribute('data-prompt');
-      if (prompt && dom.chatInput) {
-        dom.chatInput.value = prompt;
-        dom.chatInput.focus();
-      }
-    });
-  });
-
-  renderChatMessages();
-}
-
-function renderChatMessages() {
-  if (!dom.chatMessagesArea) return;
-  dom.chatMessagesArea.innerHTML = state.chatMessages.map((msg, i) => {
-    const isUser = msg.role === 'user';
-    const avatar = isUser
-      ? '<div class="w-8 h-8 rounded-xl bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm"><i class="fa-solid fa-user"></i></div>'
-      : '<div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm"><i class="fa-solid fa-robot"></i></div>';
-    
-    const bubbleClass = isUser
-      ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm p-4 text-xs shadow-sm max-w-2xl leading-relaxed whitespace-pre-wrap select-text ml-auto'
-      : 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-tl-sm p-4 text-xs shadow-sm max-w-2xl leading-relaxed whitespace-pre-wrap select-text';
-
-    const copyBtn = !isUser
-      ? `<div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-end"><button type="button" onclick="navigator.clipboard.writeText(${JSON.stringify(msg.content)}); showToast('Copied to clipboard!', 'success');" class="text-[11px] text-slate-400 hover:text-slate-700 flex items-center gap-1 transition-colors"><i class="fa-solid fa-copy"></i> Copy</button></div>`
-      : '';
-
-    return `
-      <div class="flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''}">
-        ${avatar}
-        <div class="${bubbleClass}">
-          ${escapeHtml(msg.content)}
-          ${copyBtn}
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  dom.chatMessagesArea.scrollTop = dom.chatMessagesArea.scrollHeight;
-}
-
-function escapeHtml(text) {
-  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-  return String(text).replace(/[&<>"']/g, m => map[m]);
-}
-
-async function handleSendChatMessage() {
-  if (!dom.chatInput) return;
-  const userText = dom.chatInput.value.trim();
-  if (!userText) return;
-
-  dom.chatInput.value = '';
-  state.chatMessages.push({ role: 'user', content: userText });
-  renderChatMessages();
-
-  // Add temporary typing indicator
-  const typingId = 'typing-' + Date.now();
-  const typingEl = document.createElement('div');
-  typingEl.id = typingId;
-  typingEl.className = 'flex items-start gap-3';
-  typingEl.innerHTML = `
-    <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm"><i class="fa-solid fa-robot"></i></div>
-    <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 text-xs text-slate-500 shadow-sm flex items-center gap-2">
-      <span class="w-2 h-2 rounded-full bg-blue-600 animate-bounce"></span>
-      <span class="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:0.2s]"></span>
-      <span class="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:0.4s]"></span>
-      <span class="ml-1 text-[11px] font-medium">Thinking with Local LLM...</span>
-    </div>
-  `;
-  dom.chatMessagesArea.appendChild(typingEl);
-  dom.chatMessagesArea.scrollTop = dom.chatMessagesArea.scrollHeight;
-
-  try {
-    const payload = {
-      messages: state.chatMessages.map(m => ({ role: m.role, content: m.content })),
-      engine: state.currentEngine === 'groq' ? 'groq' : 'ollama',
-      model: state.currentEngine === 'groq' ? state.groqModel : 'llama3.2:3b',
-      groqApiKey: state.groqApiKey
-    };
-
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    const typingRemove = document.getElementById(typingId);
-    if (typingRemove) typingRemove.remove();
-
-    if (res.ok && data.success) {
-      state.chatMessages.push({ role: 'assistant', content: data.reply });
-      renderChatMessages();
-    } else {
-      state.chatMessages.push({ role: 'assistant', content: `⚠️ Error: ${data.error || 'Failed to generate response'}` });
-      renderChatMessages();
-    }
-  } catch (err) {
-    const typingRemove = document.getElementById(typingId);
-    if (typingRemove) typingRemove.remove();
-    state.chatMessages.push({ role: 'assistant', content: `⚠️ Connection error: ${err.message}. Ensure Ollama is running.` });
-    renderChatMessages();
-  }
-}
-
-function exportChatTranscript() {
-  const transcript = state.chatMessages.map(m => `[${m.role.toUpperCase()}]:\n${m.content}\n`).join('\n---\n\n');
-  const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Hukam_Kar_Chat_Transcript_${Date.now()}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('Chat transcript exported!', 'success');
-}
 
 
