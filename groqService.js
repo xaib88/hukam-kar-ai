@@ -2,9 +2,95 @@
  * Groq AI Service for Multilingual Resume Translation & Semantic Job Matching
  */
 
+const http = require('http');
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-120b';
+const DEFAULT_OLLAMA_MODEL = 'llama3.2:3b';
 const FALLBACK_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'];
+
+/**
+ * Robust Native HTTP post helper for Ollama (avoids undici fetch timeout & IPv6 issues)
+ */
+function postToOllama(payload) {
+  return new Promise((resolve, reject) => {
+    const payloadString = JSON.stringify(payload);
+    const req = http.request({
+      hostname: '127.0.0.1',
+      port: 11434,
+      path: '/api/chat',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payloadString)
+      }
+    }, (res) => {
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => { body += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(body));
+          } catch (e) {
+            resolve({ raw: body });
+          }
+        } else {
+          reject(new Error(`Ollama Error (${res.statusCode}): ${body}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      reject(new Error(`Ollama Connection Error: ${err.message}`));
+    });
+
+    req.write(payloadString);
+    req.end();
+  });
+}
+
+/**
+ * Call local Ollama API (100% Free, Unlimited, Offline)
+ */
+async function callOllamaAPI(prompt, model = DEFAULT_OLLAMA_MODEL) {
+  try {
+    const data = await postToOllama({
+      model: model || DEFAULT_OLLAMA_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: `You are an elite Enterprise Talent Intelligence & Multilingual HR Screener AI.
+Your task is to take resumes in ANY international language, detect the language, translate the entire resume into professional English preserving layout, and evaluate the candidate deeply against a given Job Description.
+Always output pure valid JSON without markdown wrapping or code fences.`
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      format: 'json',
+      stream: false,
+      options: {
+        temperature: 0.1,
+        num_gpu: 0,
+        num_predict: 2048
+      }
+    });
+
+    const rawContent = data.message?.content || data.choices?.[0]?.message?.content || '{}';
+
+    try {
+      return JSON.parse(rawContent);
+    } catch (e) {
+      const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+      throw new Error(`Failed to parse Ollama JSON response: ${rawContent.substring(0, 100)}`);
+    }
+  } catch (err) {
+    console.error('Local Ollama call error:', err.message);
+    throw err;
+  }
+}
 
 /**
  * Call Groq API with robust retry, fallback models, and JSON extraction
@@ -87,8 +173,8 @@ Always output pure valid JSON without markdown wrapping or code fences.`
 /**
  * Translates and Evaluates a single Resume against a Job Description
  */
-async function evaluateResume(resumeText, filename, jobDescription, apiKey, model) {
-  if (!apiKey || apiKey === 'DEMO_MODE') {
+async function evaluateResume(resumeText, filename, jobDescription, apiKey, model, engine = 'groq') {
+  if (engine !== 'ollama' && (!apiKey || apiKey === 'DEMO_MODE')) {
     return simulateEvaluation(resumeText, filename, jobDescription);
   }
 
@@ -191,7 +277,12 @@ Return ONLY a JSON object with this exact schema:
 `;
 
   try {
-    const result = await callGroqAPI(prompt, apiKey, model || DEFAULT_MODEL);
+    let result;
+    if (engine === 'ollama') {
+      result = await callOllamaAPI(prompt, model || DEFAULT_OLLAMA_MODEL);
+    } else {
+      result = await callGroqAPI(prompt, apiKey, model || DEFAULT_MODEL);
+    }
     return {
       filename,
       detectedLanguage: result.detectedLanguage || 'Detected Language',
@@ -200,7 +291,7 @@ Return ONLY a JSON object with this exact schema:
       evaluation: result.evaluation || { overallScore: 50, rankTier: 'Moderate Match', strengths: [], gapsOrMissingSkills: [] }
     };
   } catch (err) {
-    console.error(`Evaluation failed with Groq API for ${filename}:`, err.message);
+    console.error(`Evaluation failed with ${engine} API for ${filename}:`, err.message);
     throw err;
   }
 }
@@ -316,9 +407,68 @@ function simulateEvaluation(resumeText, filename, jobDescription) {
   };
 }
 
+/**
+ * Interactive Chat with Local Ollama or Cloud AI
+ */
+async function chatWithAI(messages, engine = 'ollama', model = DEFAULT_OLLAMA_MODEL, apiKey = '') {
+  if (engine === 'ollama') {
+    const data = await postToOllama({
+      model: model || DEFAULT_OLLAMA_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are Hukam Kar AI, an expert HR & Recruitment intelligence assistant. Help users craft Job Descriptions, prepare candidate interview questions, evaluate technical skills, translate multilingual resumes, and answer any questions accurately and professionally in clear Markdown.'
+        },
+        ...messages
+      ],
+      stream: false,
+      options: {
+        temperature: 0.7,
+        num_gpu: 0,
+        num_predict: 1024
+      }
+    });
+
+    return data.message?.content || data.choices?.[0]?.message?.content || 'No response generated.';
+  } else {
+    const effectiveKey = apiKey || process.env.GROQ_API_KEY;
+    if (!effectiveKey) throw new Error('Cloud AI API Key is required.');
+
+    const response = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${effectiveKey.trim()}`
+      },
+      body: JSON.stringify({
+        model: model || DEFAULT_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are Hukam Kar AI, an expert HR & Recruitment intelligence assistant. Help users craft Job Descriptions, prepare candidate interview questions, evaluate technical skills, translate multilingual resumes, and answer any questions accurately and professionally in clear Markdown.'
+          },
+          ...messages
+        ],
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Cloud AI Error (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || 'No response generated.';
+  }
+}
+
 module.exports = {
   evaluateResume,
   callGroqAPI,
+  callOllamaAPI,
+  chatWithAI,
   DEFAULT_MODEL,
+  DEFAULT_OLLAMA_MODEL,
   FALLBACK_MODELS
 };

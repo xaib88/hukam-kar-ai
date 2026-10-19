@@ -8,7 +8,7 @@ const xlsx = require('xlsx');
 const { exec } = require('child_process');
 
 const { extractTextFromFile } = require('./parser');
-const { evaluateResume, callGroqAPI, DEFAULT_MODEL } = require('./groqService');
+const { evaluateResume, callGroqAPI, callOllamaAPI, chatWithAI, DEFAULT_MODEL, DEFAULT_OLLAMA_MODEL } = require('./groqService');
 const { translateTextFree, parseCandidateProfile, evaluateResumeLocal } = require('./localEngine');
 const { SAMPLE_JOB_DESCRIPTIONS, SAMPLE_RESUMES } = require('./sampleData');
 
@@ -40,16 +40,56 @@ app.use(express.urlencoded({ extended: true, limit: '60mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 /**
- * Health check & status
+ * Health check & status (includes Ollama auto-detection)
  */
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  let ollamaAvailable = false;
+  let ollamaModels = [];
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 1200);
+    const oRes = await fetch('http://127.0.0.1:11434/api/tags', { signal: ctrl.signal });
+    clearTimeout(t);
+    if (oRes.ok) {
+      const oData = await oRes.json();
+      ollamaAvailable = true;
+      ollamaModels = (oData.models || []).map(m => m.name);
+    }
+  } catch (e) {}
+
   res.json({
     status: 'online',
     timestamp: new Date().toISOString(),
     hasServerGroqKey: !!process.env.GROQ_API_KEY,
+    ollamaAvailable,
+    ollamaModels,
     defaultModel: DEFAULT_MODEL,
-    enginesAvailable: ['local_free', 'groq_ai']
+    defaultOllamaModel: DEFAULT_OLLAMA_MODEL,
+    enginesAvailable: ['local_free', 'ollama_local', 'groq_ai']
   });
+});
+
+/**
+ * Interactive AI Chatbot (Local Ollama / Cloud AI)
+ */
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { messages, engine = 'ollama', model, groqApiKey } = req.body;
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'Messages array is required.' });
+    }
+
+    const reply = await chatWithAI(messages, engine, model, groqApiKey);
+    res.json({
+      success: true,
+      reply,
+      engineUsed: engine,
+      modelUsed: model || (engine === 'ollama' ? DEFAULT_OLLAMA_MODEL : DEFAULT_MODEL)
+    });
+  } catch (err) {
+    console.error('Chat error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /**
@@ -134,9 +174,26 @@ app.post('/api/translate-only', upload.array('resumes', 50), async (req, res) =>
  * Helper to process single translation with either Local or Groq engine
  */
 async function processSingleTranslation(rawText, filename, format, engine, groqApiKey, model, sampleFlag = null) {
-  if (engine === 'groq' && groqApiKey) {
+  if (engine === 'ollama') {
     try {
-      const groqResult = await evaluateResume(rawText, filename, 'General Cross-Border Professional Roles', groqApiKey, model);
+      const ollamaResult = await evaluateResume(rawText, filename, 'General Cross-Border Professional Roles', 'OLLAMA', model || DEFAULT_OLLAMA_MODEL, 'ollama');
+      return {
+        id: 'trans-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
+        filename,
+        format,
+        sampleFlag,
+        originalText: rawText,
+        detectedLanguage: ollamaResult.detectedLanguage,
+        candidate: ollamaResult.candidate,
+        translatedText: formatStructuredEnglish(ollamaResult.translatedResume),
+        translatedResume: ollamaResult.translatedResume
+      };
+    } catch (e) {
+      console.warn('Ollama translation failed, falling back to local engine:', e.message);
+    }
+  } else if (engine === 'groq' && groqApiKey) {
+    try {
+      const groqResult = await evaluateResume(rawText, filename, 'General Cross-Border Professional Roles', groqApiKey, model, 'groq');
       return {
         id: 'trans-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7),
         filename,
@@ -242,10 +299,17 @@ app.post('/api/rank-resumes', upload.array('resumes', 150), async (req, res) => 
 
       let evaluationResult;
 
-      // Check if user selected Groq and provided key
-      if (engine === 'groq' && apiKey) {
+      // Check if user selected Ollama, Groq, or Local
+      if (engine === 'ollama') {
         try {
-          evaluationResult = await evaluateResume(extracted.text, file.originalname, jobDescription, apiKey, model);
+          evaluationResult = await evaluateResume(extracted.text, file.originalname, jobDescription, 'OLLAMA', model || DEFAULT_OLLAMA_MODEL, 'ollama');
+        } catch (evalErr) {
+          console.warn(`Ollama evaluation error for ${file.originalname}, falling back to local:`, evalErr.message);
+          evaluationResult = await evaluateLocally(extracted.text, file.originalname, jobDescription);
+        }
+      } else if (engine === 'groq' && apiKey) {
+        try {
+          evaluationResult = await evaluateResume(extracted.text, file.originalname, jobDescription, apiKey, model, 'groq');
         } catch (evalErr) {
           console.warn(`Groq evaluation error for ${file.originalname}, falling back to local:`, evalErr.message);
           evaluationResult = await evaluateLocally(extracted.text, file.originalname, jobDescription);
@@ -315,9 +379,16 @@ app.post('/api/rank-samples', async (req, res) => {
       const sample = samplesToProcess[i];
       let evaluationResult;
 
-      if (engine === 'groq' && apiKey) {
+      if (engine === 'ollama') {
         try {
-          evaluationResult = await evaluateResume(sample.rawText, sample.filename, jobDescription, apiKey, model);
+          evaluationResult = await evaluateResume(sample.rawText, sample.filename, jobDescription, 'OLLAMA', model || DEFAULT_OLLAMA_MODEL, 'ollama');
+        } catch (err) {
+          console.warn(`Ollama evaluation error for ${sample.id}, using local heuristic:`, err.message);
+          evaluationResult = await evaluateLocally(sample.rawText, sample.filename, jobDescription);
+        }
+      } else if (engine === 'groq' && apiKey) {
+        try {
+          evaluationResult = await evaluateResume(sample.rawText, sample.filename, jobDescription, apiKey, model, 'groq');
         } catch (err) {
           console.warn(`Groq evaluation error for ${sample.id}, using local:`, err.message);
           evaluationResult = await evaluateLocally(sample.rawText, sample.filename, jobDescription);
