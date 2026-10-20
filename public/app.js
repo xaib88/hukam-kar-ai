@@ -10,7 +10,7 @@ const state = {
   currentTab: 'translate', // 'translate' | 'ranker'
   currentEngine: localStorage.getItem('talentglobal_engine') || 'local', // 'local' | 'groq'
   groqApiKey: localStorage.getItem('hukamkar_ai_key') || localStorage.getItem('talentglobal_groq_key') || '',
-  groqModel: localStorage.getItem('talentglobal_groq_model') || 'openai/gpt-oss-120b',
+  groqModel: (localStorage.getItem('talentglobal_groq_model') && localStorage.getItem('talentglobal_groq_model') !== 'openai/gpt-oss-120b') ? localStorage.getItem('talentglobal_groq_model') : 'llama-3.3-70b-versatile',
   
   // Translation Tab State
   transFiles: [],
@@ -35,6 +35,19 @@ const state = {
   sampleJDs: [],
   sampleResumes: []
 };
+
+// Safe JSON parser to gracefully handle HTML / 524 timeouts from Cloudflare
+async function parseSafeJson(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    if (res.status === 524 || text.includes('<!DOCTYPE') || text.includes('<html')) {
+      throw new Error(`Connection timeout (${res.status || 524}). The server took longer than expected. Please try again with fewer resumes or use Standard Neural engine.`);
+    }
+    throw new Error(`Server returned HTTP ${res.status}: ${text.substring(0, 100)}`);
+  }
+}
 
 // DOM References
 const dom = {
@@ -584,12 +597,11 @@ async function runTranslationOnly() {
       body: formData
     });
 
+    const data = await parseSafeJson(res);
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Translation failed');
+      throw new Error(data.error || 'Translation failed');
     }
 
-    const data = await res.json();
     state.translatedResults = data.translations || [];
 
     updateTransProgress(100, 'Translations complete!');
@@ -1017,12 +1029,11 @@ async function runBatchRanker() {
         body: formData
       });
 
+      const uploadData = await parseSafeJson(uploadRes);
       if (!uploadRes.ok) {
-        const err = await uploadRes.json();
-        throw new Error(err.error || 'Evaluation failed');
+        throw new Error(uploadData.error || 'Evaluation failed');
       }
 
-      const uploadData = await uploadRes.json();
       combinedRankings.push(...(uploadData.rankings || []));
     }
 
@@ -1041,12 +1052,11 @@ async function runBatchRanker() {
         })
       });
 
+      const sampleData = await parseSafeJson(sampleRes);
       if (!sampleRes.ok) {
-        const err = await sampleRes.json();
-        throw new Error(err.error || 'Sample evaluation failed');
+        throw new Error(sampleData.error || 'Sample evaluation failed');
       }
 
-      const sampleData = await sampleRes.json();
       combinedRankings.push(...(sampleData.rankings || []));
     }
 

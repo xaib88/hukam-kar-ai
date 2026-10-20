@@ -26,55 +26,131 @@ const LANGUAGE_NAMES = {
   'en': 'English'
 };
 
+// Rate limiter / circuit breaker for Google Translate endpoint
+let googleTranslateRateLimitedUntil = 0;
+const translationCache = new Map();
+
+/**
+ * Quick heuristic to check if text is predominantly English
+ */
+function isPredominantlyEnglish(text) {
+  if (!text) return true;
+  // Non-Latin scripts check
+  if (/[\u0600-\u06FF\u0750-\u077F]/.test(text)) return false; // Arabic / Urdu
+  if (/[\u0400-\u04FF]/.test(text)) return false; // Cyrillic
+  if (/[\u4E00-\u9FFF\u3040-\u30FF]/.test(text)) return false; // CJK
+
+  const sample = text.substring(0, 3000).toLowerCase();
+  const englishKeywords = [
+    'experience', 'education', 'skills', 'work', 'project', 'curriculum',
+    'university', 'management', 'responsibilities', 'developer', 'engineer',
+    'sales', 'summary', 'professional', 'contact', 'profile'
+  ];
+  let hits = 0;
+  for (const kw of englishKeywords) {
+    if (sample.includes(kw)) hits++;
+  }
+  return hits >= 3;
+}
+
 /**
  * Free translation via neural Google Translate endpoint
- * Handles chunking to prevent URL length limits
+ * Handles intelligent chunking, English bypass, and rate-limit circuit breaking
  */
 async function translateTextFree(text) {
   if (!text || !text.trim()) {
     return { translatedText: '', detectedLanguage: 'English', languageCode: 'en' };
   }
 
-  // Split text into paragraphs/chunks of ~1500 characters
-  const paragraphs = text.split(/\n\s*\n/);
-  const translatedChunks = [];
+  // 1. Bypass translation if already English
+  if (isPredominantlyEnglish(text)) {
+    return {
+      translatedText: text,
+      detectedLanguage: 'English',
+      languageCode: 'en'
+    };
+  }
+
+  // 2. Check circuit breaker
+  if (Date.now() < googleTranslateRateLimitedUntil) {
+    return {
+      translatedText: text,
+      detectedLanguage: 'Detected Language',
+      languageCode: 'auto'
+    };
+  }
+
+  // 3. Fast detection on first 300 chars
+  const sample = text.substring(0, 300).trim();
   let detectedCode = 'en';
+
+  try {
+    const detectUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(sample)}`;
+    const res = await fetch(detectUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (res.status === 429) {
+      googleTranslateRateLimitedUntil = Date.now() + 60000;
+      return { translatedText: text, detectedLanguage: 'Detected Language', languageCode: 'auto' };
+    }
+    if (res.ok) {
+      const d = await res.json();
+      if (d && d[2]) detectedCode = d[2];
+    }
+  } catch (e) {
+    // Ignore network error on detection
+  }
+
+  if (detectedCode === 'en') {
+    return { translatedText: text, detectedLanguage: 'English', languageCode: 'en' };
+  }
+
+  // 4. Large-chunk translation (up to 2500 chars per chunk, max 3 chunks to prevent rate limiting)
+  const paragraphs = text.split(/\n\s*\n/);
+  const largeChunks = [];
+  let currentChunk = '';
 
   for (const para of paragraphs) {
     const trimmed = para.trim();
-    if (!trimmed) {
-      translatedChunks.push('');
+    if (!trimmed) continue;
+    if ((currentChunk + '\n\n' + trimmed).length > 2500) {
+      if (currentChunk) largeChunks.push(currentChunk);
+      currentChunk = trimmed.substring(0, 2500);
+    } else {
+      currentChunk = currentChunk ? currentChunk + '\n\n' + trimmed : trimmed;
+    }
+    if (largeChunks.length >= 3) break; // Limit to 3 large chunks max per resume
+  }
+  if (currentChunk && largeChunks.length < 3) largeChunks.push(currentChunk);
+
+  const translatedPieces = [];
+  for (const chunk of largeChunks) {
+    if (translationCache.has(chunk)) {
+      translatedPieces.push(translationCache.get(chunk));
       continue;
     }
 
-    // If paragraph is too long, split by sentences
-    const subChunks = trimmed.length > 1500 ? trimmed.match(/.{1,1400}(\s|$)/g) || [trimmed] : [trimmed];
-
-    const translatedSub = [];
-    for (const chunk of subChunks) {
-      if (!chunk.trim()) continue;
-      try {
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(chunk.trim())}`;
-        const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        if (!res.ok) throw new Error(`Translate status: ${res.status}`);
-        const data = await res.json();
-        
-        if (data && data[0]) {
-          const piece = data[0].map(item => item[0]).join('');
-          translatedSub.push(piece);
-        }
-        if (data && data[2] && detectedCode === 'en') {
-          detectedCode = data[2];
-        }
-      } catch (err) {
-        console.warn('Chunk translation warning:', err.message);
-        translatedSub.push(chunk); // Fallback to original text chunk on error
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(chunk)}`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (res.status === 429) {
+        googleTranslateRateLimitedUntil = Date.now() + 60000;
+        translatedPieces.push(chunk);
+        break;
       }
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const data = await res.json();
+      if (data && data[0]) {
+        const piece = data[0].map(item => item[0]).join('');
+        translationCache.set(chunk, piece);
+        translatedPieces.push(piece);
+      } else {
+        translatedPieces.push(chunk);
+      }
+    } catch (err) {
+      translatedPieces.push(chunk);
     }
-    translatedChunks.push(translatedSub.join(' '));
   }
 
-  const finalTranslated = translatedChunks.join('\n\n');
+  const finalTranslated = translatedPieces.length > 0 ? translatedPieces.join('\n\n') : text;
   const languageName = LANGUAGE_NAMES[detectedCode] || detectedCode.toUpperCase();
 
   return {

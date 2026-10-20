@@ -3,8 +3,8 @@
  */
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const DEFAULT_MODEL = 'openai/gpt-oss-120b';
-const FALLBACK_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'];
+const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const FALLBACK_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
 
 /**
  * Call Groq API with robust retry, fallback models, and JSON extraction
@@ -52,10 +52,10 @@ Always output pure valid JSON without markdown wrapping or code fences.`
 
       if (!response.ok) {
         const errorText = await response.text();
-        if (response.status === 404 && errorText.includes('model_not_found')) {
-          console.warn(`Model ${model} not available on Groq, trying next fallback...`);
-          lastError = new Error(`Groq Model Error: ${errorText}`);
-          continue; // Try next model
+        if (response.status === 404 || response.status === 429) {
+          console.warn(`Groq model ${model} issue (${response.status}), trying next fallback...`);
+          lastError = new Error(`Groq (${response.status}): ${errorText}`);
+          continue; // Try next fallback model
         }
         throw new Error(`Groq API Error (${response.status}): ${errorText}`);
       }
@@ -74,7 +74,7 @@ Always output pure valid JSON without markdown wrapping or code fences.`
       }
     } catch (err) {
       lastError = err;
-      if (err.message.includes('model_not_found')) {
+      if (err.message.includes('model_not_found') || err.message.includes('429') || err.message.includes('rate_limit')) {
         continue;
       }
       throw err;
@@ -102,7 +102,7 @@ ${jobDescription.trim()}
 
 CANDIDATE RESUME RAW TEXT (Filename: ${filename}):
 """
-${resumeText.substring(0, 12000)}
+${resumeText.substring(0, 6000)}
 """
 
 REQUIREMENTS:

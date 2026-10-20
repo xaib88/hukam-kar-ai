@@ -224,49 +224,58 @@ app.post('/api/rank-resumes', upload.array('resumes', 150), async (req, res) => 
     }
 
     console.log(`[Rank] Processing ${files.length} resumes using Engine: ${engine}...`);
+
+    // Process files concurrently with max 3 workers to avoid rate limits while staying under 15s total
+    const concurrency = Math.min(3, files.length);
+    let currentIndex = 0;
     const results = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      let extracted;
-      try {
-        extracted = await extractTextFromFile(file.path, file.originalname, file.mimetype);
-      } catch (parseErr) {
-        extracted = {
-          text: `[Error reading file: ${parseErr.message}]`,
-          pages: 1,
-          format: file.originalname.split('.').pop() || 'UNKNOWN',
-          filename: file.originalname
-        };
-      }
-
-      let evaluationResult;
-
-      // Check if user selected Groq or Local
-      if (engine === 'groq' && apiKey) {
+    const workers = Array.from({ length: concurrency }, async () => {
+      while (currentIndex < files.length) {
+        const i = currentIndex++;
+        const file = files[i];
+        let extracted;
         try {
-          evaluationResult = await evaluateResume(extracted.text, file.originalname, jobDescription, apiKey, model, 'groq');
-        } catch (evalErr) {
-          console.warn(`Groq evaluation error for ${file.originalname}, falling back to local:`, evalErr.message);
+          extracted = await extractTextFromFile(file.path, file.originalname, file.mimetype);
+        } catch (parseErr) {
+          extracted = {
+            text: `[Error reading file: ${parseErr.message}]`,
+            pages: 1,
+            format: file.originalname.split('.').pop() || 'UNKNOWN',
+            filename: file.originalname
+          };
+        }
+
+        let evaluationResult;
+
+        // Check if user selected Groq or Local
+        if (engine === 'groq' && apiKey) {
+          try {
+            evaluationResult = await evaluateResume(extracted.text, file.originalname, jobDescription, apiKey, model, 'groq');
+          } catch (evalErr) {
+            console.warn(`Groq evaluation error for ${file.originalname}, falling back to local:`, evalErr.message);
+            evaluationResult = await evaluateLocally(extracted.text, file.originalname, jobDescription);
+          }
+        } else {
+          // 100% Free Local Engine
           evaluationResult = await evaluateLocally(extracted.text, file.originalname, jobDescription);
         }
-      } else {
-        // 100% Free Local Engine
-        evaluationResult = await evaluateLocally(extracted.text, file.originalname, jobDescription);
+
+        results.push({
+          id: 'cand-' + (i + 1) + '-' + Date.now(),
+          filename: file.originalname,
+          fileFormat: extracted.format,
+          fileSizeKb: Math.round(file.size / 1024),
+          originalText: extracted.text,
+          ...evaluationResult
+        });
+
+        // Clean up file
+        try { if (fs.existsSync(file.path)) fs.unlinkSync(file.path); } catch (e) {}
       }
+    });
 
-      results.push({
-        id: 'cand-' + (i + 1) + '-' + Date.now(),
-        filename: file.originalname,
-        fileFormat: extracted.format,
-        fileSizeKb: Math.round(file.size / 1024),
-        originalText: extracted.text,
-        ...evaluationResult
-      });
-
-      // Clean up file
-      try { if (fs.existsSync(file.path)) fs.unlinkSync(file.path); } catch (e) {}
-    }
+    await Promise.all(workers);
 
     // Sort descending by score
     results.sort((a, b) => (b.evaluation?.overallScore || 0) - (a.evaluation?.overallScore || 0));
@@ -734,8 +743,27 @@ app.delete('/api/schedule-interview/:id', (req, res) => {
   res.json({ success: true, message: 'Interview cancelled successfully' });
 });
 
+/**
+ * 404 Handler for API routes (always return JSON, never HTML)
+ */
+app.use('/api', (req, res) => {
+  res.status(404).json({ success: false, error: `API route not found: ${req.method} ${req.originalUrl}` });
+});
+
+/**
+ * Global Error Handler (always return JSON, never HTML doctype)
+ */
+app.use((err, req, res, next) => {
+  console.error('API Error:', err.message);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    success: false,
+    error: err.message || 'An unexpected server error occurred.'
+  });
+});
+
 if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`=======================================================`);
     console.log(`🚀 Hukam Kar - Powered by Momin Tahir`);
     console.log(`🌐 Server running at: http://localhost:${PORT}`);
